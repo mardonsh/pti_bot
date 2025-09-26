@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: ${DATABASE_URL}
+      ADMIN_ONLY_REVIEW: ${ADMIN_ONLY_REVIEW:-false}
+      TZ: ${TZ:-UTC}
+      DIGEST_TIME: ${DIGEST_TIME:-10:30}
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_READONLY_URL: ${DATABASE_READONLY_URL:-postgresql://dashboard_reader:dashboard_reader@db:5432/postgres}
+      DASHBOARD_BASIC_USER: ${DASHBOARD_BASIC_USER}
+      DASHBOARD_BASIC_PASSWORD: ${DASHBOARD_BASIC_PASSWORD}
+      DASHBOARD_TITLE: ${DASHBOARD_TITLE:-Driver Compliance Dashboard}
+    ports:
+      - "${DASHBOARD_PORT:-8000}:8000"
+    restart: unless-stopped
+
+volumes:
+  db-data:

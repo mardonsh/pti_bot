@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ settings.title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 2rem;
+      background: #f4f6fb;
+      color: #1e2330;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    .summary-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(30, 35, 48, 0.08);
+    }
+    .metric {
+      font-size: 2.2rem;
+      font-weight: 600;
+      margin: 0.5rem 0 0;
+      color: #2d6cdf;
+    }
+    .subtext {
+      margin-top: 0.5rem;
+      color: #5f677c;
+      font-size: 0.95rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(30, 35, 48, 0.08);
+    }
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e4e8f1;
+    }
+    th {
+      background: #f1f4fa;
+      font-weight: 600;
+      color: #2a3144;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .muted {
+      color: #7a8197;
+      font-size: 0.9rem;
+    }
+    .toolbar {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border-radius: 999px;
+      padding: 0.6rem 1.1rem;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2d6cdf;
+      color: white;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+    .btn:focus, .btn:hover {
+      background: #1f4da8;
+    }
+    .btn.secondary {
+      background: #edf0f7;
+      color: #2a3144;
+    }
+    .empty-state {
+      padding: 1.5rem;
+      text-align: center;
+      color: #5f677c;
+    }
+    @media (max-width: 720px) {
+      body {
+        padding: 1.5rem 1rem;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>{{ settings.title }}</h1>
+      <div class="muted">Generated {{ summary.generated_at.isoformat() }}</div>
+    </div>
+    <div class="toolbar">
+      <a class="btn" href="/docs" target="_blank" rel="noopener">Open API Docs</a>
+      <span class="btn secondary" title="Trigger /compliance_report from dispatcher chat">
+        Trigger report via /compliance_report (see README)
+      </span>
+    </div>
+  </header>
+
+  <section class="summary-grid">
+    <article class="card">
+      <h2>Total Drivers</h2>
+      <p class="metric">{{ summary.total_drivers }}</p>
+      <p class="subtext">Active driver count</p>
+    </article>
+    <article class="card">
+      <h2>Passes Today</h2>
+      <p class="metric">{{ summary.pass_count }}</p>
+      <p class="subtext">Check-ins marked pass (current date)</p>
+    </article>
+    <article class="card">
+      <h2>Pending Today</h2>
+      <p class="metric">{{ summary.pending_count }}</p>
+      <p class="subtext">Drivers awaiting review</p>
+    </article>
+    <article class="card">
+      <h2>Last Reset</h2>
+      <p class="metric">{{ summary.last_reset_at.isoformat() if summary.last_reset_at else '—' }}</p>
+      <p class="subtext">From compliance_resets log</p>
+    </article>
+  </section>
+
+  <section>
+    <h2 style="margin-bottom: 1rem;">Pending drivers</h2>
+    {% if pending %}
+    <table>
+      <thead>
+        <tr>
+          <th>Driver</th>
+          <th>Chat</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Passes (7d)</th>
+          <th>Last Notification</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for driver in pending %}
+        <tr>
+          <td>
+            {% if driver.username %}
+              @{{ driver.username }}
+            {% elif driver.full_name %}
+              {{ driver.full_name }}
+            {% else %}
+              Driver {{ driver.driver_id }}
+            {% endif %}
+          </td>
+          <td>{{ driver.notify_chat_id or 'Direct' }}</td>
+          <td>{{ driver.check_date }}</td>
+          <td>{{ driver.status }}</td>
+          <td>{{ driver.pass_count_7d }}</td>
+          <td>{{ driver.last_notification.isoformat() if driver.last_notification else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="card empty-state">No pending drivers</div>
+    {% endif %}
+  </section>
+</body>
+</html>
